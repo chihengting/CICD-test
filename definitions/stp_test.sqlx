@@ -7,7 +7,7 @@ CREATE OR REPLACE PROCEDURE
 BEGIN
   -- 範例：單純回傳一筆資料
 SELECT
-  'Hello BigQuery Stored Procedure' AS message,
+  'Hello BigQuery Stored Procedure!!!!' AS message,
   CURRENT_TIMESTAMP() AS run_time;
 END
   ;
