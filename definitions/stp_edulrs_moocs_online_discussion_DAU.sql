@@ -1,0 +1,154 @@
+CREATE OR REPLACE PROCEDURE `jchuang-project.ding_test.stp_edulrs_moocs_online_discussion_DAU`(target_table STRING, start_date STRING, end_date STRING)
+BEGIN
+    DECLARE min_academicYear INT64;
+
+    CREATE OR REPLACE TEMP TABLE base_data AS (
+        SELECT
+            REGEXP_REPLACE(R.context_extensions_by_whom, r'[\[\]\""\""]', '') AS openid,
+            CASE 
+                WHEN R.context_extensions_by_whom IS NULL OR REGEXP_REPLACE(R.context_extensions_by_whom, r'[\[\]\""\""]', '') = '' THEN FALSE
+                ELSE TRUE
+            END AS with_openid,
+            DATETIME_TRUNC(R.timestamp, DAY) AS date,
+            context_team_name,
+            verb_name,
+            -- online_discussion might not have result_duration, using 0 if null or checking schema. 
+            -- Schema says timestamp is NO nullable, others YES. default 0 if null.
+            0 AS duration_sec
+        FROM `dw_storage.edulrs_online_discussion_moocs` AS R
+        WHERE
+            is_deleted_m is False
+        AND
+            context_extensions_by_whom is not null
+        AND 
+            date(timestamp) between date(start_date) and date(end_date)
+    );
+
+    set min_academicYear = (
+          SELECT 
+          dw_storage.f_general_iso8601_academicYear(MIN(date)) AS academicYear,
+        FROM 
+          base_data
+    );
+
+    CREATE OR REPLACE TEMP TABLE complete_data AS (
+
+    WITH limited_student_info AS (
+        SELECT
+          L.academicYear,
+          semester,
+          gender,
+          scode,
+          GUID
+        FROM
+            dw_storage.moedos_register_student L
+        where L.academicYear >= min_academicYear
+    ),
+
+    mapped_data AS (
+        SELECT 
+            R.openid,
+            R.with_openid,
+            date,
+            verb_name,
+            COALESCE(R.context_team_name, S.scode) as scode,
+            gender,
+            duration_sec
+        FROM base_data as R
+        LEFT JOIN dw_storage.vi_dim_moedos_openid_mapping AS I
+        ON I.OpenID = R.openid
+        LEFT JOIN limited_student_info AS S
+        ON S.GUID = I.GUID
+        AND S.academicYear = dw_storage.f_general_iso8601_academicYear(R.date) 
+        AND S.semester = dw_storage.f_general_iso8601_semester(R.date)
+    ),
+
+    unique_user AS(
+        SELECT
+            ARRAY_AGG(DISTINCT openid) AS user_list,
+            date,
+            with_openid,
+            COALESCE(scode, '其他') as scode,
+            COALESCE(gender, '其他') as gender,
+        FROM mapped_data
+        GROUP BY date, scode, gender, with_openid
+
+    ),
+
+    activity_count AS(
+        SELECT
+            date,
+            with_openid,
+            COALESCE(scode, '其他') as scode,
+            COALESCE(gender, '其他') as gender,
+            COUNT(*) AS daily_count
+        FROM mapped_data
+        WHERE verb_name = 'attempted'
+        group by date, scode, gender, with_openid
+    ),
+    activity_time AS (
+        SELECT 
+            date,
+            with_openid,
+            COALESCE(scode, '其他') as scode,
+            COALESCE(gender, '其他') as gender,
+            -- 單位: 小時
+            SUM(duration_sec)/3600.0 as activity_time
+        FROM mapped_data
+        WHERE verb_name = 'completed'
+        group by date, scode, gender, with_openid
+    )
+
+    SELECT 
+        L.date,
+        L.scode,
+        L.gender,
+        'online_discussion' AS event_type,
+        L.with_openid,
+        L.user_list,
+        COALESCE(R.daily_count, 0) as daily_count,
+        COALESCE(T.activity_time, 0) as activity_time,
+        CURRENT_DATETIME('Asia/Taipei') AS created_date_m
+    FROM unique_user L
+    FULL JOIN activity_count R
+    ON L.date = R.date
+    AND L.scode = R.scode
+    AND L.gender = R.gender
+    AND L.with_openid = R.with_openid
+    FULL JOIN activity_time T
+    ON L.date = T.date
+    AND L.scode = T.scode
+    AND L.gender = T.gender
+    AND L.with_openid = T.with_openid
+    );
+
+    EXECUTE IMMEDIATE FORMAT("""
+    INSERT INTO `%s` (
+            date,
+            scode,
+            gender,
+            event_type,
+            with_openid,
+            user_list,
+            daily_count,
+            activity_time,
+            created_date_m
+        )
+        SELECT 
+            date,
+            scode,
+            gender,
+            event_type,
+            with_openid,
+            user_list,
+            daily_count,
+            activity_time,
+            created_date_m
+        FROM complete_data
+    """, target_table
+    );
+
+    DROP TABLE base_data;
+    DROP table complete_data;
+
+END;
