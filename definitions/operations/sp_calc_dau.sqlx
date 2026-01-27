@@ -1,0 +1,14 @@
+config {
+  type: "operations",
+  dependencies: ["sp_clean_events"],
+  tags: ["daily"]
+}
+
+DECLARE run_date DATE DEFAULT DATE("${vars.run_date}");
+
+INSERT INTO ding_test.dau_table
+SELECT
+  run_date AS date,
+  COUNT(DISTINCT user_id) AS dau,
+  CURRENT_DATETIME('Asia/Taipei') AS created_at
+FROM ding_test.clean_events_${vars.run_date};
