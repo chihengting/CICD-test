@@ -1,4 +1,9 @@
-CREATE OR REPLACE PROCEDURE `jchuang-project.ding_test.stp_edulrs_moocs_webpage_DAU`(target_table STRING, start_date STRING, end_date STRING)
+config {
+  type: "operation",
+  tags: ["sp", "moocs", "discussion"]
+}
+
+CREATE OR REPLACE PROCEDURE `jchuang-project.ding_test.stp_edulrs_moocs_online_discussion_DAU`(target_table STRING, start_date STRING, end_date STRING)
 BEGIN
     DECLARE min_academicYear INT64;
 
@@ -12,11 +17,10 @@ BEGIN
             DATETIME_TRUNC(R.timestamp, DAY) AS date,
             context_team_name,
             verb_name,
-            CASE
-                WHEN R.result_duration >= 14400 THEN 14400
-                ELSE R.result_duration
-            END AS duration_sec
-        FROM `dw_storage.edulrs_webpage_moocs` AS R
+            -- online_discussion might not have result_duration, using 0 if null or checking schema. 
+            -- Schema says timestamp is NO nullable, others YES. default 0 if null.
+            0 AS duration_sec
+        FROM `dw_storage.edulrs_online_discussion_moocs` AS R
         WHERE
             is_deleted_m is False
         AND
@@ -104,7 +108,7 @@ BEGIN
         L.date,
         L.scode,
         L.gender,
-        'webpage' AS event_type,
+        'online_discussion' AS event_type,
         L.with_openid,
         L.user_list,
         COALESCE(R.daily_count, 0) as daily_count,

@@ -1,4 +1,9 @@
-CREATE OR REPLACE PROCEDURE `jchuang-project.ding_test.stp_edulrs_moocs_course_DAU`(target_table STRING, start_date STRING, end_date STRING)
+config {
+  type: "operation",
+  tags: ["sp", "moocs", "assessment"]
+}
+
+CREATE OR REPLACE PROCEDURE `jchuang-project.ding_test.stp_edulrs_moocs_assessment_DAU`(target_table STRING, start_date STRING, end_date STRING)
 BEGIN
     DECLARE min_academicYear INT64;
 
@@ -16,7 +21,7 @@ BEGIN
                 WHEN R.result_duration >= 14400 THEN 14400
                 ELSE R.result_duration
             END AS duration_sec
-        FROM `dw_storage.edulrs_course_moocs` AS R
+        FROM `dw_storage.edulrs_assessment_moocs` AS R
         WHERE
             is_deleted_m is False
         AND
@@ -104,7 +109,7 @@ BEGIN
         L.date,
         L.scode,
         L.gender,
-        'course' AS event_type,
+        'assessment' AS event_type,
         L.with_openid,
         L.user_list,
         COALESCE(R.daily_count, 0) as daily_count,
