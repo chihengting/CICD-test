@@ -4,11 +4,14 @@ config {
   tags: ["daily"]
 }
 
-DECLARE run_date DATE DEFAULT DATE("${vars.run_date}");
+-- 宣告 SQL 變數，將 Dataform 傳入的字串轉為 DATE 格式
+DECLARE run_date DATE DEFAULT DATE("${dataform.projectConfig.vars.run_date}");
 
-INSERT INTO ding_test.dau_table
+-- 寫入 DAU 統計結果
+INSERT INTO `${dataform.projectConfig.defaultDataset}.dau_table` (date, dau, created_at)
 SELECT
   run_date AS date,
   COUNT(DISTINCT user_id) AS dau,
   CURRENT_DATETIME('Asia/Taipei') AS created_at
-FROM ding_test.clean_events_${vars.run_date};
+-- 修正：這裡也要使用完整路徑
+FROM `${dataform.projectConfig.defaultDataset}.clean_events_${dataform.projectConfig.vars.run_date}`;

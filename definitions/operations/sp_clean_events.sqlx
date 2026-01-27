@@ -3,12 +3,13 @@ config {
   tags: ["daily"]
 }
 
-DECLARE run_date DATE DEFAULT DATE("${vars.run_date}");
+-- Use dataform.projectConfig.vars.run_date if you need it in the DECLARE
+DECLARE run_date DATE DEFAULT DATE("${dataform.projectConfig.vars.run_date}");
 
--- 清洗當天資料
-CREATE OR REPLACE TABLE ding_test.clean_events_${vars.run_date} AS
+-- Using the variable in the table name
+CREATE OR REPLACE TABLE `${dataform.projectConfig.defaultDataset}.clean_events_${dataform.projectConfig.vars.run_date}` AS
 SELECT
   user_id,
   event_time
-FROM ding_test.raw_events
+FROM `${dataform.projectConfig.defaultDataset}.raw_events`
 WHERE DATE(event_time) = run_date;

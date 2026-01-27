@@ -1,4 +1,7 @@
 defaultProject: jchuang-project
-defaultDataset: dataform
+defaultDataset: ding_test
 defaultAssertionDataset: dataform_assertions
 dataformCoreVersion: 3.0.37
+
+vars:
+  run_date: "2024-01-01"
