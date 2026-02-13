@@ -5,7 +5,7 @@ on:
     branches:
       - test  # 偵測 test 分支
     paths:
-      - '**/*.sqlx'    # 偵測專案內任何 sqlx 的變動
+      - '**/*.sqlx'    # 偵測專案內任何 .sqlx 的變動
       - 'dataform.json'
       - 'package.json'
 
@@ -17,19 +17,19 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v4
 
-      # 1. 認證 Google Cloud
+      # 1. 使用 JSON 金鑰進行認證
       - name: Authenticate to Google Cloud
         uses: google-github-actions/auth@v2
         with:
           credentials_json: ${{ secrets.GCP_SA_KEY }}
 
-      # 2. 設定 Cloud SDK (強制使用最新版)
+      # 2. 強制安裝最新版 Cloud SDK (包含 Dataform GA 指令)
       - name: Set up Cloud SDK
         uses: google-github-actions/setup-gcloud@v2
         with:
-          version: 'latest' # 確保抓到包含 dataform 的最新版本
+          version: '>= 432.0.0' # 確保版本夠新才支援 dataform 指令
 
-      # 3. 執行 Dataform Workflow (使用 GA 正式版指令)
+      # 3. 執行 Dataform Workflow
       - name: Run Dataform Workflow
         run: |
           gcloud dataform workflows run \
