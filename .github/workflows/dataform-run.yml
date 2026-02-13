@@ -51,9 +51,20 @@ jobs:
           echo "✅ 編譯成功！編譯 ID: $COMPILATION_NAME"
           
           echo "===== 步驟 2: 開始執行工作流程 (Workflow Invocation) ====="
+          # 準備帶有 Service Account 的 JSON 參數
+          INVOCATION_PAYLOAD=$(cat <<EOF
+          {
+            "compilationResult": "$COMPILATION_NAME",
+            "invocationConfig": {
+              "serviceAccount": "bigquery-github-action@jchuang-project.iam.gserviceaccount.com"
+            }
+          }
+          EOF
+          )
+
           INVOCATION_RES=$(curl -s -X POST -H "Authorization: Bearer $TOKEN" \
             -H "Content-Type: application/json" \
-            -d "{\"compilationResult\": \"$COMPILATION_NAME\"}" \
+            -d "$INVOCATION_PAYLOAD" \
             "https://dataform.googleapis.com/v1beta1/projects/jchuang-project/locations/asia-east1/repositories/ding/workflowInvocations")
           
           INVOCATION_NAME=$(echo $INVOCATION_RES | jq -r '.name')
