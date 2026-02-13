@@ -4,7 +4,7 @@ name: Dataform CI/CD Trigger
 on:
   push:
     branches:
-      - main
+      - test
     paths:
       - 'definitions/**'  # 偵測 SQLX 檔案變動
       - 'includes/**'
