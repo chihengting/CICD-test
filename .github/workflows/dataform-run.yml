@@ -3,7 +3,7 @@ name: Dataform CI/CD Trigger
 on:
   push:
     branches:
-      - test
+      - test  # <--- 已改為偵測 test 分支
     paths:
       - 'definitions/**'
       - 'dataform.json'
@@ -16,21 +16,22 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v4
 
+      # 1. 認證 Google Cloud (使用你存放在 GitHub Secrets 的 JSON Key)
       - name: Authenticate to Google Cloud
         uses: google-github-actions/auth@v2
         with:
           credentials_json: ${{ secrets.GCP_SA_KEY }}
 
+      # 2. 設定 Cloud SDK 並安裝 beta 組件
       - name: Set up Cloud SDK
         uses: google-github-actions/setup-gcloud@v2
         with:
-          # 重點：強制安裝 dataform 組件
-          install_components: 'beta,dataform'
+          install_components: 'beta'
 
+      # 3. 執行 Dataform Workflow
       - name: Run Dataform Workflow
-        # 修正：移除重複的指令列，只保留一組正確的指令
         run: |
-          gcloud dataform workflows run \
+          gcloud beta dataform workflows run \
             --project=jchuang-project \
             --location=asia-east1 \
             --repository=ding
