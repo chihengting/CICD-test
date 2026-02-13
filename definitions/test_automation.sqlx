@@ -7,4 +7,4 @@ config {
 SELECT
   CURRENT_TIMESTAMP() as execution_time,
   "Success" as status,
-  "jchuang-project" as project_id  -- 你的專案 ID
+  "jchuang-project" as project_id
