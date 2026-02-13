@@ -3,7 +3,7 @@ name: Dataform CI/CD Trigger
 on:
   push:
     branches:
-      - main
+      - test
     paths:
       - 'definitions/**'
       - 'dataform.json'
