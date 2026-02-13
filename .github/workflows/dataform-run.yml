@@ -1,0 +1,40 @@
+name: Dataform CI/CD Trigger
+
+# 觸發條件：當 main 分支有程式碼變動時
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'definitions/**'  # 偵測 SQLX 檔案變動
+      - 'includes/**'
+      - 'dataform.json'
+      - 'package.json'
+
+jobs:
+  execute-dataform:
+    runs-on: ubuntu-latest
+
+    steps:
+      # 1. 複製 GitHub 儲存庫程式碼
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      # 2. 認證 Google Cloud
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          # 請確保你在 GitHub Secrets 中新增了一個名為 GCP_SA_KEY 的變數
+          credentials_json: ${{ secrets.GCP_SA_KEY }}
+
+      # 3. 設定 Google Cloud SDK
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+
+      # 4. 執行 Dataform Workflow
+      - name: Run Dataform Workflow
+        run: |
+          gcloud dataform workflows run \
+            --project=jchuang-project \
+            --location=asia-east1 \
+            --repository=ding
