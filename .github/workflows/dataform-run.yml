@@ -1,79 +1,48 @@
-name: Dataform CI/CD Trigger
+name: 自動執行 Dataform SQLX
 
 on:
   push:
     branches:
-      - test  # 偵測 test 分支
-    paths:
-      - '**/*.sqlx'
-      - 'dataform.json'
-      - 'package.json'
+      - test  # 當推播到 main 分支時觸發
+
+env:
+  PROJECT_ID: jchuang-project
+  LOCATION: asia-east1
+  REPOSITORY: cicd-test
 
 jobs:
-  execute-dataform:
+  run-dataform:
     runs-on: ubuntu-latest
-
     steps:
-      - name: Checkout Code
-        uses: actions/checkout@v4
+      - name: 取得程式碼
+        uses: actions/checkout@v3
 
-      # 1. 認證 Google Cloud
-      - name: Authenticate to Google Cloud
-        uses: google-github-actions/auth@v2
+      - name: 登入 Google Cloud
+        uses: google-github-actions/auth@v1
         with:
-          credentials_json: ${{ secrets.GCP_SA_KEY }}
+          credentials_json: ${{ secrets.GCP_CREDENTIALS }}
 
-      # 2. 設定 Cloud SDK (用來產生 Token)
-      - name: Set up Cloud SDK
-        uses: google-github-actions/setup-gcloud@v2
+      - name: 設定 Google Cloud SDK
+        uses: google-github-actions/setup-gcloud@v1
 
-      # 3. 透過 REST API 觸發 Dataform
-      - name: Trigger Dataform Execution via API
+      - name: 執行 Dataform API (編譯 + 執行)
         run: |
-          # 取得 GCP 授權 Token
-          TOKEN=$(gcloud auth print-access-token)
+          echo "1. 呼叫 API：建立 Compilation Result (編譯最新的 main 分支)..."
+          COMPILATION_RESULT=$(gcloud dataform compilation-results create \
+            --project=${{ env.PROJECT_ID }} \
+            --location=${{ env.LOCATION }} \
+            --repository=${{ env.REPOSITORY }} \
+            --git-commitish=main \
+            --format="value(name)")
           
-          echo "===== 步驟 1: 開始編譯 Dataform (Compilation) ====="
-          COMPILATION_RES=$(curl -s -X POST -H "Authorization: Bearer $TOKEN" \
-            -H "Content-Type: application/json" \
-            -d '{"gitCommitish": "test"}' \
-            "https://dataform.googleapis.com/v1beta1/projects/jchuang-project/locations/asia-east1/repositories/ding/compilationResults")
-          
-          # 解析回傳的 JSON 取得編譯結果的 ID
-          COMPILATION_NAME=$(echo $COMPILATION_RES | jq -r '.name')
-          
-          if [ "$COMPILATION_NAME" == "null" ] || [ -z "$COMPILATION_NAME" ]; then
-            echo "❌ 編譯失敗！請檢查錯誤訊息："
-            echo $COMPILATION_RES
-            exit 1
-          fi
-          
-          echo "✅ 編譯成功！編譯 ID: $COMPILATION_NAME"
-          
-          echo "===== 步驟 2: 開始執行工作流程 (Workflow Invocation) ====="
-          # 準備帶有 Service Account 的 JSON 參數
-          INVOCATION_PAYLOAD=$(cat <<EOF
-          {
-            "compilationResult": "$COMPILATION_NAME",
-            "invocationConfig": {
-              "serviceAccount": "bigquery-github-action@jchuang-project.iam.gserviceaccount.com"
-            }
-          }
-          EOF
-          )
+          echo "編譯結果 ID: $COMPILATION_RESULT"
 
-          INVOCATION_RES=$(curl -s -X POST -H "Authorization: Bearer $TOKEN" \
-            -H "Content-Type: application/json" \
-            -d "$INVOCATION_PAYLOAD" \
-            "https://dataform.googleapis.com/v1beta1/projects/jchuang-project/locations/asia-east1/repositories/ding/workflowInvocations")
-          
-          INVOCATION_NAME=$(echo $INVOCATION_RES | jq -r '.name')
-          
-          if [ "$INVOCATION_NAME" == "null" ] || [ -z "$INVOCATION_NAME" ]; then
-            echo "❌ 啟動執行失敗！請檢查錯誤訊息："
-            echo $INVOCATION_RES
-            exit 1
-          fi
-          
-          echo "✅ 成功啟動 Dataform 執行！執行 ID: $INVOCATION_NAME"
-          echo "🎉 現在你可以前往 GCP Console 的 Dataform 介面查看執行進度了！"
+          echo "2. 呼叫 API：建立 Workflow Invocation (開始執行 SQLX)..."
+          # 這裡會執行整個專案。如果你只想執行特定的 SQLX，可以加上 --tags 或其他參數
+          gcloud dataform workflow-invocations create \
+            --project=${{ env.PROJECT_ID }} \
+            --location=${{ env.LOCATION }} \
+            --repository=${{ env.REPOSITORY }} \
+            --compilation-result=$COMPILATION_RESULT
+
+          echo "🚀 Dataform 執行已觸發！"
