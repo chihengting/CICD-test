@@ -35,7 +35,7 @@ jobs:
           COMPILATION_RESPONSE=$(curl -s -X POST "https://dataform.googleapis.com/v1/projects/${{ env.PROJECT_ID }}/locations/${{ env.LOCATION }}/repositories/${{ env.REPOSITORY }}/compilationResults" \
             -H "Authorization: Bearer $ACCESS_TOKEN" \
             -H "Content-Type: application/json" \
-            -d '{"gitCommitish": "main"}')
+            -d '{"gitCommitish": "test"}')
             
           # 使用 jq 解析回傳的 JSON，取得 name 欄位 (這就是編譯結果的 ID)
           COMPILATION_RESULT=$(echo $COMPILATION_RESPONSE | jq -r '.name')
