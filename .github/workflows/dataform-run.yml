@@ -26,42 +26,42 @@ jobs:
         uses: google-github-actions/setup-gcloud@v1
 
       - name: Execute Dataform via REST API
-              run: |
-                echo "1. 取得 Google Cloud Access Token..."
-                # 既然已經成功登入，我們可以直接把 Token 印出來給 curl 用
-                ACCESS_TOKEN=$(gcloud auth print-access-token)
-                
-                echo "2. 呼叫 API：建立 Compilation Result (編譯最新的 main 分支)..."
-                COMPILATION_RESPONSE=$(curl -s -X POST "https://dataform.googleapis.com/v1/projects/${{ env.PROJECT_ID }}/locations/${{ env.LOCATION }}/repositories/${{ env.REPOSITORY }}/compilationResults" \
-                  -H "Authorization: Bearer $ACCESS_TOKEN" \
-                  -H "Content-Type: application/json" \
-                  -d '{"gitCommitish": "main"}')
-                  
-                # 使用 jq 解析回傳的 JSON，取得 name 欄位 (這就是編譯結果的 ID)
-                COMPILATION_RESULT=$(echo $COMPILATION_RESPONSE | jq -r '.name')
-                
-                # 簡單的錯誤處理，如果沒拿到 ID 就中斷並顯示錯誤
-                if [ "$COMPILATION_RESULT" == "null" ] || [ -z "$COMPILATION_RESULT" ]; then
-                  echo "❌ 編譯失敗！API 回傳內容："
-                  echo $COMPILATION_RESPONSE
-                  exit 1
-                fi
-                
-                echo "✅ 編譯成功！Compilation Result ID: $COMPILATION_RESULT"
-                
-                echo "3. 呼叫 API：建立 Workflow Invocation (開始將 SQL 送進 BigQuery 執行)..."
-                INVOCATION_RESPONSE=$(curl -s -X POST "https://dataform.googleapis.com/v1/projects/${{ env.PROJECT_ID }}/locations/${{ env.LOCATION }}/repositories/${{ env.REPOSITORY }}/workflowInvocations" \
-                  -H "Authorization: Bearer $ACCESS_TOKEN" \
-                  -H "Content-Type: application/json" \
-                  -d "{\"compilationResult\": \"$COMPILATION_RESULT\"}")
-                
-                # 檢查是否有成功建立執行任務
-                INVOCATION_ID=$(echo $INVOCATION_RESPONSE | jq -r '.name')
-                
-                if [ "$INVOCATION_ID" == "null" ] || [ -z "$INVOCATION_ID" ]; then
-                  echo "❌ 執行觸發失敗！API 回傳內容："
-                  echo $INVOCATION_RESPONSE
-                  exit 1
-                fi
-                
-                echo "🚀 Dataform 執行已成功觸發！Invocation ID: $INVOCATION_ID"
+        run: |
+          echo "1. 取得 Google Cloud Access Token..."
+          # 既然已經成功登入，我們可以直接把 Token 印出來給 curl 用
+          ACCESS_TOKEN=$(gcloud auth print-access-token)
+          
+          echo "2. 呼叫 API：建立 Compilation Result (編譯最新的 main 分支)..."
+          COMPILATION_RESPONSE=$(curl -s -X POST "https://dataform.googleapis.com/v1/projects/${{ env.PROJECT_ID }}/locations/${{ env.LOCATION }}/repositories/${{ env.REPOSITORY }}/compilationResults" \
+            -H "Authorization: Bearer $ACCESS_TOKEN" \
+            -H "Content-Type: application/json" \
+            -d '{"gitCommitish": "main"}')
+            
+          # 使用 jq 解析回傳的 JSON，取得 name 欄位 (這就是編譯結果的 ID)
+          COMPILATION_RESULT=$(echo $COMPILATION_RESPONSE | jq -r '.name')
+          
+          # 簡單的錯誤處理，如果沒拿到 ID 就中斷並顯示錯誤
+          if [ "$COMPILATION_RESULT" == "null" ] || [ -z "$COMPILATION_RESULT" ]; then
+            echo "❌ 編譯失敗！API 回傳內容："
+            echo $COMPILATION_RESPONSE
+            exit 1
+          fi
+          
+          echo "✅ 編譯成功！Compilation Result ID: $COMPILATION_RESULT"
+          
+          echo "3. 呼叫 API：建立 Workflow Invocation (開始將 SQL 送進 BigQuery 執行)..."
+          INVOCATION_RESPONSE=$(curl -s -X POST "https://dataform.googleapis.com/v1/projects/${{ env.PROJECT_ID }}/locations/${{ env.LOCATION }}/repositories/${{ env.REPOSITORY }}/workflowInvocations" \
+            -H "Authorization: Bearer $ACCESS_TOKEN" \
+            -H "Content-Type: application/json" \
+            -d "{\"compilationResult\": \"$COMPILATION_RESULT\"}")
+          
+          # 檢查是否有成功建立執行任務
+          INVOCATION_ID=$(echo $INVOCATION_RESPONSE | jq -r '.name')
+          
+          if [ "$INVOCATION_ID" == "null" ] || [ -z "$INVOCATION_ID" ]; then
+            echo "❌ 執行觸發失敗！API 回傳內容："
+            echo $INVOCATION_RESPONSE
+            exit 1
+          fi
+          
+          echo "🚀 Dataform 執行已成功觸發！Invocation ID: $INVOCATION_ID"
