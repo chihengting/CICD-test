@@ -6,5 +6,5 @@ config {
 
 SELECT
   CURRENT_TIMESTAMP() as execution_time,
-  "Success!!!!!!" as status,
+  "Success_20260224" as status,
   "jchuang-project" as project_id
