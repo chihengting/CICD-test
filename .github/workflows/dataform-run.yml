@@ -8,7 +8,7 @@ on:
 env:
   PROJECT_ID: jchuang-project
   LOCATION: asia-east1
-  REPOSITORY: cicd-test
+  REPOSITORY: ding
 
 jobs:
   run-dataform:
