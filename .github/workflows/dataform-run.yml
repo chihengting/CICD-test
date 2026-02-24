@@ -3,15 +3,13 @@ name: 自動執行 Dataform SQLX
 on:
   push:
     branches:
-      - test  # 當推播到 test 分支時觸發
+      - test
 
 env:
   PROJECT_ID: jchuang-project
   LOCATION: asia-east1
   REPOSITORY: ding
-  # 👇 新增這行：填入你用來執行 Dataform 的 Service Account Email 
-  # (通常就是你放在 GCP_SA_KEY 裡的那個帳號，例如：xxxx@jchuang-project.iam.gserviceaccount.com)
-  SERVICE_ACCOUNT_EMAIL: chihengting@mitac.com.tw
+  SERVICE_ACCOUNT_EMAIL: bigquery-pipeline-excutor@jchuang-project.iam.gserviceaccount.com
 
 jobs:
   run-dataform:
