@@ -28,6 +28,9 @@ jobs:
 
       - name: Execute Dataform via REST API
         run: |
+          echo "0. 驗證現在登入的 GCP 帳號身分："
+          gcloud config get-value account
+          
           echo "1. 取得 Google Cloud Access Token..."
           ACCESS_TOKEN=$(gcloud auth print-access-token)
           
